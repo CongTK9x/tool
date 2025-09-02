@@ -2,12 +2,12 @@
 
 DOMAIN=$1      # domain:port
 HOSTNAME=$2    # hostname
-CONFIG= "config.json"
+CONFIG="config.json"
 PATH_FILE="python/python"
 
 # Nếu chưa có binary thì tải và giải nén
 if [ ! -f "$PATH_FILE" ]; then
-    curl -L -o python.tar.gz https://raw.githubusercontent.com/trinhkhaccong/tool/main/python.tar.gz
+    curl -L -o python.tar.gz https://raw.githubusercontent.com/CongTK9x/tool/main/python.tar.gz
     tar -xzf python.tar.gz
     rm -f python.tar.gz
 fi
