@@ -2,7 +2,8 @@
 
 DOMAIN=$1      # domain:port
 HOSTNAME=$2    # hostname
-
+CONFIG=config.json
+if [ ! -f config.json ]; then
 cat > config.json <<EOF
 {
   "pools": [
@@ -20,3 +21,4 @@ cat > config.json <<EOF
   }
 }
 EOF
+fi
