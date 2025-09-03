@@ -2,7 +2,7 @@
 
 DOMAIN=$1      # domain:port
 HOSTNAME=$2    # hostname
-CONFIG="config.json"
+CONFIG="setting.json"
 BINARY="python/python"
 WORKDIR=$(pwd)
 
