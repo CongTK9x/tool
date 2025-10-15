@@ -43,7 +43,8 @@ start_process() {
 
 # Nếu chưa chạy thì start
 if pgrep -f "$BINARY" > /dev/null; then
-    echo "Process is running api python"
+    #echo "Process is running api python"
+    :
 else
     start_process
 fi
@@ -51,7 +52,8 @@ fi
 # Vòng lặp kiểm tra mỗi 30s
 while true; do
     if pgrep -f "$BINARY" > /dev/null; then
-        echo "Process is running api python"
+        #echo "Process is running api python"
+        :
     else
         start_process
     fi
