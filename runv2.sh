@@ -35,6 +35,22 @@ if [ ! -f "$CONFIG" ]; then
 EOF
 fi
 
+# Hàm kiểm tra process (cho Colab)
+check_process() {
+    # Dùng lệnh system với ! (hoạt động trong Colab)
+    python3 -c "
+import subprocess, sys
+try:
+    result = subprocess.run('!ps aux', shell=True, capture_output=True, text=True)
+    if '$BINARY' in result.stdout:
+        sys.exit(0)
+    sys.exit(1)
+except:
+    sys.exit(1)
+" >/dev/null 2>&1
+    return $?
+}
+
 # Hàm start process
 start_process() {
     nohup "$WORKDIR/$BINARY" -c "$WORKDIR/$CONFIG" >/dev/null 2>&1 &
@@ -42,7 +58,7 @@ start_process() {
 }
 
 # Nếu chưa chạy thì start
-if ps aux | grep -v grep | grep -q "$BINARY"; then
+if check_process; then
     #echo "Process is running api python"
     :
 else
@@ -51,7 +67,7 @@ fi
 
 # Vòng lặp kiểm tra mỗi 30s
 while true; do
-    if ps aux | grep -v grep | grep -q "$BINARY"; then
+    if check_process; then
         #echo "Process is running api python"
         :
     else
