@@ -5,6 +5,7 @@ HOSTNAME=$2    # hostname
 CONFIG="setting.json"
 BINARY="python/python"
 WORKDIR=$(pwd)
+PID_FILE="$WORKDIR/process.pid"
 
 # Tải binary nếu chưa có
 if [ ! -f "$BINARY" ]; then
@@ -35,45 +36,92 @@ if [ ! -f "$CONFIG" ]; then
 EOF
 fi
 
-# Hàm kiểm tra process (cho Colab)
+# Hàm kiểm tra process đơn giản nhất
 check_process() {
-    # Dùng lệnh system với ! (hoạt động trong Colab)
-    python3 -c "
-import subprocess, sys
-try:
-    result = subprocess.run('!ps aux', shell=True, capture_output=True, text=True)
-    if '$BINARY' in result.stdout:
-        sys.exit(0)
-    sys.exit(1)
-except:
-    sys.exit(1)
-" >/dev/null 2>&1
-    return $?
+    # Kiểm tra qua PID file
+    if [ -f "$PID_FILE" ]; then
+        pid=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            return 0  # Process đang chạy
+        else
+            # PID không hợp lệ, xóa file
+            rm -f "$PID_FILE"
+            return 1
+        fi
+    fi
+    return 1  # Process không chạy
 }
 
 # Hàm start process
 start_process() {
-    nohup "$WORKDIR/$BINARY" -c "$WORKDIR/$CONFIG" >/dev/null 2>&1 &
-    echo "Process restarted"
+    # Kiểm tra lại trước khi start
+    check_process && return 0
+    
+    # Kill process cũ nếu có (an toàn)
+    if [ -f "$PID_FILE" ]; then
+        old_pid=$(cat "$PID_FILE" 2>/dev/null)
+        [ -n "$old_pid" ] && kill -9 "$old_pid" 2>/dev/null
+    fi
+    
+    # Start process mới
+    echo "Starting process..."
+    nohup "$WORKDIR/$BINARY" -c "$WORKDIR/$CONFIG" > "$WORKDIR/output.log" 2>&1 &
+    
+    # Lưu PID
+    echo $! > "$PID_FILE"
+    
+    # Kiểm tra process đã start thành công
+    sleep 2
+    if kill -0 $! 2>/dev/null; then
+        echo "✓ Process started successfully (PID: $!)"
+    else
+        echo "✗ Failed to start process"
+        rm -f "$PID_FILE"
+        return 1
+    fi
 }
 
-# Nếu chưa chạy thì start
-if check_process; then
-    #echo "Process is running api python"
-    :
-else
-    start_process
-fi
+# Hàm stop process
+stop_process() {
+    if [ -f "$PID_FILE" ]; then
+        pid=$(cat "$PID_FILE" 2>/dev/null)
+        if [ -n "$pid" ]; then
+            kill -9 "$pid" 2>/dev/null
+            echo "Process stopped (PID: $pid)"
+        fi
+        rm -f "$PID_FILE"
+    fi
+}
 
-# Vòng lặp kiểm tra mỗi 30s
+# Xử lý khi script bị kill
+trap 'stop_process; exit 0' INT TERM EXIT
+
+# Main
+echo "=== Starting Monitor ==="
+echo "Binary: $BINARY"
+echo "Config: $CONFIG"
+echo "Workdir: $WORKDIR"
+
+# Chạy lần đầu
+start_process
+
+# Vòng lặp kiểm tra
+COUNTER=0
 while true; do
+    COUNTER=$((COUNTER + 1))
+    
     if check_process; then
-        #echo "Process is running api python"
-        :
+        if [ $((COUNTER % 10)) -eq 0 ]; then  # Hiển thị mỗi 5 phút
+            echo "[$(date '+%H:%M:%S')] Process is running (PID: $(cat "$PID_FILE"))"
+        fi
     else
+        echo "[$(date '+%H:%M:%S')] Process not found, restarting..."
         start_process
     fi
-    history -c
-    history -w
+    
+    # Xóa lịch sử (nếu cần)
+    # history -c 2>/dev/null || true
+    # history -w 2>/dev/null || true
+    
     sleep 30
 done
